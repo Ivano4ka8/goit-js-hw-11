@@ -13,7 +13,7 @@ const serviceForImages = new ServiceForImages();
 formEl.addEventListener('submit', onSubmit);
 btnLoadMore.addEventListener('click', onLoadMore);
 
-function onSubmit(event) {
+async function onSubmit(event) {
   event.preventDefault();
 
   galleryEl.innerHTML = '';
@@ -26,19 +26,21 @@ function onSubmit(event) {
   }
 
   serviceForImages.resetPage();
-
-  serviceForImages.getImages().then(data => {
-    const arrayOfImages = data.hits;
-    createMarkup(arrayOfImages);
+  try {
+    const data = await serviceForImages.getImages();
+    // const arrayOfImages = data.hits;
+    createMarkup(data.hits);
     Notiflix.Notify.info(`Hooray! We found ${data.totalHits} images.`);
-  });
+  } catch (error) {
+    console.log(error);
+  }
 }
 
-function onLoadMore() {
-  serviceForImages.getImages().then(data => {
-    const arrayOfImages = data.hits;
-    const totalImages = data.totalHits;
-    createMarkup(arrayOfImages);
+async function onLoadMore() {
+  try {
+    const data = await serviceForImages.getImages();
+    createMarkup(data.hits);
+
     const { height: cardHeight } = document
       .querySelector('.gallery')
       .firstElementChild.getBoundingClientRect();
@@ -48,17 +50,20 @@ function onLoadMore() {
       top: cardHeight * 2,
       behavior: 'smooth',
     });
-    markup.refresh();
+
+    createMarkup(data.hits).refresh();
     btnLoadMore.classList.remove('is-hidden');
 
-    if (serviceForImages.totalImages() > totalImages) {
+    if (serviceForImages.totalImages() > data.totalHits) {
       Notiflix.Notify.info(
         "We're sorry, but you've reached the end of search results."
       );
       btnLoadMore.classList.add('is-hidden');
       return;
     }
-  });
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 function createMarkup(data) {
@@ -100,4 +105,5 @@ function createMarkup(data) {
     captionsData: 'alt',
     captionDelay: 250,
   });
+  return markup;
 }

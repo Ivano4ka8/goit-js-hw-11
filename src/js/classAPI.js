@@ -10,16 +10,17 @@ export class ServiceForImages {
   }
 
   getImages() {
-    console.log(this);
 
     return axios
       .get(
         `${this.#BASE_URL}?key=${this.#API_KEY}&q=${this.nameOfImage}&image_type=photo&orientation=horizontal&safesearch=true&page=${this.page}&per_page=40`
       )
       .then(response => {
+        console.log(response)
         return response;
       })
       .then(({ data }) => {
+        console.log(data)
         this.incrementPage();
         return data;
       });
