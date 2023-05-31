@@ -6,6 +6,8 @@ import { scroll } from './js/scroll';
 import { ServiceForImages } from './js/classAPI';
 
 const serviceForImages = new ServiceForImages();
+const simpleBox = new simpleLightbox('.gallery a');
+let totalPages = "";
 
 refs.formEl.addEventListener('submit', onSubmit);
 refs.btnLoadMore.addEventListener('click', onLoadMore);
@@ -27,7 +29,12 @@ async function onSubmit(event) {
   try {
     const data = await serviceForImages.getImages();
     createMarkup(data.hits);
+    simpleBox.refresh();
     Notiflix.Notify.info(`Hooray! We found ${data.totalHits} images.`);
+
+    if (data.totalHits < 40) {
+      refs.btnLoadMore.classList.add('is-hidden');
+    }
   } catch (error) {
     console.log(error);
   }
@@ -37,11 +44,11 @@ async function onLoadMore() {
   try {
     const data = await serviceForImages.getImages();
     createMarkup(data.hits);
+    simpleBox.refresh();
 
     scroll(refs.galleryEl);
-
-    createMarkup(data.hits).refresh();
     refs.btnLoadMore.classList.remove('is-hidden');
+
 
     if (serviceForImages.totalImages() > data.totalHits) {
       Notiflix.Notify.info(
@@ -89,10 +96,4 @@ function createMarkup(data) {
   refs.btnLoadMore.classList.remove('is-hidden');
 
   refs.galleryEl.insertAdjacentHTML('beforeend', markup);
-
-  markup = new simpleLightbox('.photo-card a', {
-    captionsData: 'alt',
-    captionDelay: 250,
-  });
-  return markup;
 }
