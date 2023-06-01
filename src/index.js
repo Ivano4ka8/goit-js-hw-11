@@ -7,13 +7,14 @@ import { ServiceForImages } from './js/classAPI';
 
 const serviceForImages = new ServiceForImages();
 const simpleBox = new simpleLightbox('.gallery a');
-let totalPages = "";
+let page;
 
 refs.formEl.addEventListener('submit', onSubmit);
 refs.btnLoadMore.addEventListener('click', onLoadMore);
 
 async function onSubmit(event) {
   event.preventDefault();
+  page = 1;
 
   refs.galleryEl.innerHTML = '';
   refs.btnLoadMore.classList.add('is-hidden');
@@ -21,18 +22,27 @@ async function onSubmit(event) {
   serviceForImages.name = event.target.elements.searchQuery.value.trim();
 
   if (serviceForImages.name.trim() === '') {
-    return Notiflix.Notify.info("String coudn't be empty. Please enter a word");
+    return Notiflix.Notify.info(
+      "String coudn't be empty. Please enter a word",
+      { clickToClose: true }
+    );
   }
 
-  serviceForImages.resetPage();
-
   try {
-    const data = await serviceForImages.getImages();
-    createMarkup(data.hits);
+    const data = await serviceForImages.getImages(page);
+    if (data.data.hits.length === 0) {
+      Notiflix.Notify.failure(
+        'Sorry, there are no images matching your search query. Please try again.'
+      );
+      refs.btnLoadMore.classList.add('is-hidden');
+      return;
+    }
+    createMarkup(data.data.hits);
     simpleBox.refresh();
-    Notiflix.Notify.info(`Hooray! We found ${data.totalHits} images.`);
 
-    if (data.totalHits < 40) {
+    Notiflix.Notify.info(`Hooray! We found ${data.data.totalHits} images.`);
+
+    if (data.data.totalHits < 40) {
       refs.btnLoadMore.classList.add('is-hidden');
     }
   } catch (error) {
@@ -41,16 +51,18 @@ async function onSubmit(event) {
 }
 
 async function onLoadMore() {
+  page += 1;
+  let totalPage;
   try {
-    const data = await serviceForImages.getImages();
-    createMarkup(data.hits);
+    const data = await serviceForImages.getImages(page);
+    totalPage = data.data.totalHits / 40;
+    createMarkup(data.data.hits);
     simpleBox.refresh();
 
     scroll(refs.galleryEl);
     refs.btnLoadMore.classList.remove('is-hidden');
 
-
-    if (serviceForImages.totalImages() > data.totalHits) {
+    if (totalPage < page) {
       Notiflix.Notify.info(
         "We're sorry, but you've reached the end of search results."
       );
@@ -63,13 +75,6 @@ async function onLoadMore() {
 }
 
 function createMarkup(data) {
-  if (data.length === 0) {
-    Notiflix.Notify.info(
-      'Sorry, there are no images matching your search query. Please try again.'
-    );
-    refs.btnLoadMore.classList.add('is-hidden');
-    return;
-  }
   let markup = data
     .map(
       image => `<li class="photo-card list">
